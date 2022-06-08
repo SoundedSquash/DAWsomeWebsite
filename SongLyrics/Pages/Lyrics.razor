@@ -5,14 +5,51 @@
 <h1>Lyric Generator</h1>
 
 <div class="container">
-    @foreach(LyricComponent lyric in lyricComponents)
-    {
-        <LyricComponent lastWord="@lyric.lastWord" />
+    @{
+        idCount = 1;
+        foreach(LyricComponent lyric in lyricComponents)
+        {
+                <LyricComponent id="@idCount" lastWord="@lyric.lastWord" OnLyricChanged="LyricUpdate" />
+            idCount++;
+        }
     }
 </div>
 
 @code {
-    List<LyricComponent> lyricComponents = new List<LyricComponent>(){ new LyricComponent() };
+    int idCount = 1;
+    List<LyricComponent> lyricComponents = new List<LyricComponent>(){ new LyricComponent() { id = 1 } };
 
+    void LyricUpdate(Data.CallbackHelper.LyricChangeCallbackArgs e)
+    {
+        string lastWord = GetLastWord(e.Lyric);
+        int index = lyricComponents.FindIndex(0, lyric => lyric.id == e.Id);
+        LyricComponent lyric = lyricComponents.ElementAt(index);
 
+        //If last line and line before is empty, delete last
+        if (string.IsNullOrEmpty(e.Lyric.Trim()) && index == lyricComponents.Count - 2 && string.IsNullOrEmpty(lyricComponents.ElementAt(index + 1).inputValue?.Trim()))
+        {
+            lyricComponents.RemoveAt(index + 1);
+            return;
+        }
+        //If no lyric block exists after this one, create it.
+        if (index == lyricComponents.Count - 1)
+        {
+            lyricComponents.Add(new LyricComponent(lastWord) {id=index + 2});
+        } else //Get next lyric and update last word.
+        {
+            lyricComponents.ElementAt(index + 1).lastWord = lastWord;
+        }
+    }
+
+    private string GetLastWord(string inputValue)
+    {
+        //Exit if line is empty.
+        if (string.IsNullOrEmpty(inputValue)) return string.Empty;
+
+        //Trim whitespaces and find last space.
+        int lastSpace = inputValue.Trim().LastIndexOf(' ');
+
+        //Calculate last word from line.
+        return lastSpace > 0 ? inputValue.Substring(lastSpace+1) : inputValue;
+    }
 }

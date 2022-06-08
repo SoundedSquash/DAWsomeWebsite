@@ -1,21 +1,35 @@
 ﻿@using DatamuseDotNet;
+@using Data;
 
     <div class="row">
-        <div class="w-50">
-            <input @bind="inputValue" @bind:event="oninput" @onkeyup="GetSyllables" @onchange="SetLastWord" style="width:100%;" />
+        <div class="col-1">@id</div>
+        <div class="col-6">
+            <input @bind="inputValue" @bind:event="oninput" @onkeyup="GetSyllables" @onchange="LyricChanged" style="width:100%;" />
         </div>
-        <div class="w-25">@currentCount</div>
-        <div class="w-25">@GetRhymes(50)</div>
+        <div class="col-1">@currentCount</div>
+        <div class="col-4">@GetRhymes(50)</div>
     </div>
 
 @code {
     [Parameter]
     public string lastWord { get; set; } = string.Empty;
-
-    private string? inputValue;
+    [Parameter]
+    public EventCallback<CallbackHelper.LyricChangeCallbackArgs> OnLyricChanged { get; set; }
+    [Parameter]
+    public int id { get; set; }
+    public string? inputValue { get; private set;}
     private int currentCount = 0;
     private string synonyms = string.Empty;
     private DatamuseClient client = new DatamuseClient();
+
+    public LyricComponent()
+    {
+        
+    }
+    public LyricComponent(string lastWord)
+    {
+        this.lastWord = lastWord;
+    }
 
     private void GetSyllables(KeyboardEventArgs e)
     {
@@ -33,24 +47,16 @@
         if (string.IsNullOrEmpty(lastWord)) return value;
 
         //Retrieve rhymes.
-        IEnumerable<DatamuseResultItem> results = client.Rhymes(lastWord).Take(maxResults);
+        DatamuseResultItem[] results = client.Rhymes(lastWord).Take(maxResults).ToArray();
 
         //Use String.Join to take a list and convert to simple list. [List].Select takes one field from the object to use.
-        value = string.Join(", ", results.Select(result => result.word));
+        value = results.Length > 0 ? string.Join(", ", results.Select(result => result.word)) : $"No rhymes for '{lastWord}'.";
 
         return value;
     }
 
-    private void SetLastWord()
+    private async Task LyricChanged(ChangeEventArgs e)
     {
-        //Exit if line is empty.
-        if (string.IsNullOrEmpty(inputValue)) return;
-
-        //Trim whitespaces and find last space.
-        int lastSpace = inputValue.Trim().LastIndexOf(' ');
-
-        //Calculate last word from line.
-        lastWord = lastSpace > 0 ? inputValue.Substring(lastSpace+1) : inputValue;
-        Console.WriteLine(lastWord);
+        await OnLyricChanged.InvokeAsync(new CallbackHelper.LyricChangeCallbackArgs {Id = id, Lyric = inputValue});
     }
 }
