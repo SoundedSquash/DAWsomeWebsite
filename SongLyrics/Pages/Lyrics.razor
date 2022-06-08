@@ -1,0 +1,18 @@
+﻿@page "/lyrics"
+
+<PageTitle>Lyric Generator</PageTitle>
+
+<h1>Lyric Generator</h1>
+
+<div class="container">
+    @foreach(LyricComponent lyric in lyricComponents)
+    {
+        <LyricComponent lastWord="@lyric.lastWord" />
+    }
+</div>
+
+@code {
+    List<LyricComponent> lyricComponents = new List<LyricComponent>(){ new LyricComponent() };
+
+
+}

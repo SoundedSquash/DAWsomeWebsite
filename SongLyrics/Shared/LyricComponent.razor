@@ -1,0 +1,56 @@
+﻿@using DatamuseDotNet;
+
+    <div class="row">
+        <div class="w-50">
+            <input @bind="inputValue" @bind:event="oninput" @onkeyup="GetSyllables" @onchange="SetLastWord" style="width:100%;" />
+        </div>
+        <div class="w-25">@currentCount</div>
+        <div class="w-25">@GetRhymes(50)</div>
+    </div>
+
+@code {
+    [Parameter]
+    public string lastWord { get; set; } = string.Empty;
+
+    private string? inputValue;
+    private int currentCount = 0;
+    private string synonyms = string.Empty;
+    private DatamuseClient client = new DatamuseClient();
+
+    private void GetSyllables(KeyboardEventArgs e)
+    {
+        string input = inputValue ?? "";
+        //Use TextStatistics package to get syllable count.
+        currentCount = TextStatistics.TextStatistics.SyllableCount(input);
+    }
+
+    private string GetRhymes(int maxResults)
+    {
+        //Set default value
+        string value = string.Empty;
+
+        //Stop if last word is empty.
+        if (string.IsNullOrEmpty(lastWord)) return value;
+
+        //Retrieve rhymes.
+        IEnumerable<DatamuseResultItem> results = client.Rhymes(lastWord).Take(maxResults);
+
+        //Use String.Join to take a list and convert to simple list. [List].Select takes one field from the object to use.
+        value = string.Join(", ", results.Select(result => result.word));
+
+        return value;
+    }
+
+    private void SetLastWord()
+    {
+        //Exit if line is empty.
+        if (string.IsNullOrEmpty(inputValue)) return;
+
+        //Trim whitespaces and find last space.
+        int lastSpace = inputValue.Trim().LastIndexOf(' ');
+
+        //Calculate last word from line.
+        lastWord = lastSpace > 0 ? inputValue.Substring(lastSpace+1) : inputValue;
+        Console.WriteLine(lastWord);
+    }
+}
